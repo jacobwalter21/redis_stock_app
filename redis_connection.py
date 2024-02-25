@@ -2,6 +2,7 @@ import redis
 import yaml
 import pandas as pd
 import re
+import plotly.express as px
 from redis.commands.json.path import Path
 
 class redis_connection:
@@ -39,13 +40,29 @@ class redis_connection:
         )
     
     def clear_database(self):
+        """Clear Redis Database
+        """
         print("Clearing database")
         self.connection.flushall
         
     def write_company_info(self, data, company):
+        """Write Company Data to Redis database
+
+        Args:
+            data (json): data from api or json file to write to Redis datbase
+            company (str): company symbol (e.g. AAPL)
+        """
         self.connection.json().set('company:' + company, Path.root_path(), data)
 
     def load_company_info(self, company):
+        """Get Company data from Redis Database and write to Dataframe
+
+        Args:
+            company (str): company symbol (e.g. AAPL)
+
+        Returns:
+            Dataframe: Company stock data
+        """
         result = self.connection.json().get('company:' + company)
 
         # Load to dataframe
@@ -59,3 +76,68 @@ class redis_connection:
         df["company"] = company
         
         return df
+    
+    def load_data_from_api(self, api, api_endpoint, datasource):
+        """Connect to API / Redis Database, extract data, and output as dataframe
+
+        Args:
+            api (api_connection): _description_
+            api_endpoint (_type_): Endpoint of what to extract from API (e.g. "Time Series (Daily)")
+            datasource (str): Where to get company data (e.g. json, api, redis)
+
+        Returns:
+            dataframe: Dataframe with all company data
+        """
+        
+        all_df = pd.DataFrame()
+        for company in api.companies.values():
+            print("Extracting data for " + company)
+            
+            # Extract data from API
+            if datasource != "json":
+                api.get_daily_price(company)
+            
+            # Write to Redis database
+            if datasource in ["json","api"]:
+                self.write_company_info(api.data[company][api_endpoint], company)
+            
+            # Load from Redis database
+            df = self.load_company_info(company)
+            
+            # Append to dataframe
+            if all_df.empty:
+                all_df = df
+            else:
+                all_df = pd.concat([all_df, df])
+                
+        return all_df
+    
+    @staticmethod
+    def plot_stock_info(df):
+        """Creates plots showing Stock Volume and Price
+        Args:
+            df (Dataframe): Dataframe containing Stock Information to be plotted (data, volume, close, etc.)
+        """
+        
+        # Plot Volume Over Time
+        fig = px.line(df, x="date", y="volume", color="company", line_shape="spline",
+                    labels={
+                        "company": "Company"
+                        },
+                    title="Stock Trading Volume")
+        fig.show()
+        
+        # Plot Closing Price Over Time
+        fig2 = px.line(df, x="date", y="close", color="company", line_shape="spline",
+                    hover_data=["date","high","low","open"],
+                    labels={
+                        "company": "Company"
+                        },
+                    title="Stock Closing Price (USD)")
+        fig2.show()
+        
+        # Plot Closing Price vs Trade Volume
+        fig3 = px.scatter(df, x="volume", y="close", color="company", 
+                        hover_data=["date","high","low","open"],
+                        title="Closing Price vs Trade Volume")
+        fig3.show()

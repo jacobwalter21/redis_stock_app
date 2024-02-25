@@ -10,6 +10,14 @@ class api_connection:
         self.data      = None
         
     def load_config(self, yaml_path="config.yaml"):
+        """Gets User API Key and Host info from yaml file
+
+        Args:
+            yaml_path (str, optional): Path to yaml file. Defaults to "config.yaml".
+
+        Returns:
+            dict: dictionary with API key and Host information from the yaml file
+        """
         
         # Load API Info
         with open(yaml_path, "r") as file:
@@ -21,6 +29,12 @@ class api_connection:
         }
 
     def lookup_stock_symbols(self,company_list,lookup_csv):
+        """Takes a list of companies and gets the stock symbols for those companies from a csv
+
+        Args:
+            company_list (list): List of companies to lookup symbols
+            lookup_csv (string): path to csv with Name and Symbol columns for companies
+        """
         nasdaq = pd.read_csv(lookup_csv)
         symbol_list = []
         for idx,company in enumerate(company_list):
@@ -35,7 +49,12 @@ class api_connection:
                 
         self.companies = dict(zip(company_list,symbol_list))
 
-    def get_daily_price(self, company):
+    def get_daily_price(self, company, end_point):
+        """Connects to API and queries stock data for the requested company
+
+        Args:
+            company (string): Company Symbol to query stock price data on (e.g. AAPL)
+        """
 
         # function get_stock_history(company)
         conn = http.client.HTTPSConnection("alpha-vantage.p.rapidapi.com")
@@ -52,11 +71,20 @@ class api_connection:
             self.data = myjson
             
     def write_to_json(self, json_file):
-        # Function write_to_json
+        """Generates a json file with API data
+
+        Args:
+            json_file (string): json file path to write output
+        """
         with open(json_file,'w') as f: 
             json.dump(self.data, f, indent=4)
             
     def load_from_json(self, json_file):
+        """Loads API data from json file
+
+        Args:
+            json_file (string): json file path to load output
+        """
         
         with open(json_file, 'r') as f:
             self.data = json.load(f)
