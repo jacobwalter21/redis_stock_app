@@ -4,6 +4,7 @@ import pandas as pd
 import re
 import plotly.express as px
 from redis.commands.json.path import Path
+import time
 
 class redis_connection:
     def __init__(self, yaml_file):
@@ -77,12 +78,11 @@ class redis_connection:
         
         return df
     
-    def load_data_from_api(self, api, api_endpoint, datasource):
+    def load_data_from_api(self, api, datasource):
         """Connect to API / Redis Database, extract data, and output as dataframe
 
         Args:
             api (api_connection): _description_
-            api_endpoint (_type_): Endpoint of what to extract from API (e.g. "Time Series (Daily)")
             datasource (str): Where to get company data (e.g. json, api, redis)
 
         Returns:
@@ -90,6 +90,7 @@ class redis_connection:
         """
         
         all_df = pd.DataFrame()
+        
         for company in api.companies.values():
             print("Extracting data for " + company)
             
@@ -99,7 +100,8 @@ class redis_connection:
             
             # Write to Redis database
             if datasource in ["json","api"]:
-                self.write_company_info(api.data[company][api_endpoint], company)
+                
+                self.write_company_info(api.data[company]["Time Series (Daily)"], company)
             
             # Load from Redis database
             df = self.load_company_info(company)
@@ -109,6 +111,8 @@ class redis_connection:
                 all_df = df
             else:
                 all_df = pd.concat([all_df, df])
+                
+            time.sleep(3) # wait to prevent API rate limit
                 
         return all_df
     

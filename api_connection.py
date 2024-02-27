@@ -49,7 +49,7 @@ class api_connection:
                 
         self.companies = dict(zip(company_list,symbol_list))
 
-    def get_daily_price(self, company, end_point):
+    def get_daily_price(self, company):
         """Connects to API and queries stock data for the requested company
 
         Args:

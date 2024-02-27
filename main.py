@@ -9,7 +9,7 @@ def main(args):
 
     # Clear Redis Database
     if args.clear_db:
-        rc.clear()
+        rc.clear_database()
 
     # Create API object
     api = api_connection("config.yaml")
@@ -20,7 +20,7 @@ def main(args):
         api.load_from_json("data.json")
 
     # Load Data from API to Redis and return a dataframe
-    df = rc.load_data_from_api(api, api.companies.values(), "Time Series (Daily)", args.datasource)
+    df = rc.load_data_from_api(api, args.datasource)
     
     # Save API extraction to json file
     api.write_to_json("data.json")
