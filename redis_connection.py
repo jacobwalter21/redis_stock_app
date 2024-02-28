@@ -3,8 +3,8 @@ import yaml
 import pandas as pd
 import re
 import plotly.express as px
-from redis.commands.json.path import Path
 import time
+import json
 
 class redis_connection:
     def __init__(self, yaml_file):
@@ -53,7 +53,7 @@ class redis_connection:
             data (json): data from api or json file to write to Redis datbase
             company (str): company symbol (e.g. AAPL)
         """
-        self.connection.json().set('company:' + company, Path.root_path(), data)
+        self.connection.json().set('company:' + company, '.', json.dumps(data))
 
     def load_company_info(self, company):
         """Get Company data from Redis Database and write to Dataframe
@@ -65,7 +65,8 @@ class redis_connection:
             Dataframe: Company stock data
         """
         result = self.connection.json().get('company:' + company)
-
+        result = json.loads(result)
+        
         # Load to dataframe
         df = pd.DataFrame.from_dict(result).transpose()
 
